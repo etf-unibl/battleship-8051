@@ -1,85 +1,64 @@
 unsigned char red at P0;
-unsigned char kolonaCrvena at P2;
 unsigned char kolonaZelena at P1;
+unsigned char kolonaCrvena at P2;
+
+enum displej
+{
+     LIJEVI = 0,
+     DESNI
+};
+
+enum dioda
+{
+     CRVENA = 0,
+     ZELENA
+};
 
 const int velicinaMatrice = 8;
-
-unsigned char matrica[velicinaMatrice][velicinaMatrice];
-unsigned char vrijednostReda[] = {0xfe, 0xfd, 0xfb, 0xf7, 0xef, 0xdf, 0xbf, 0x7f};
+unsigned char LCDDisplej[2][2][velicinaMatrice];
 unsigned char omoguciMatricu = 0x08;
 
-void initMatrice()
+void initDispleja()
+{
+     unsigned char i, j, k;
+     for(i = 0; i < 2; i++)
+     {
+           for(j = 0; j < 2; j++)
+           {
+                  for(k = 0; k < velicinaMatrice; k++)
+                  {
+                        LCDDisplej[i][j][k] = 0xff;
+                  }
+           }
+     }
+}
+
+void prikazNaDisplej()
 {
      unsigned char i, j;
-     for(i = 0; i < velicinaMatrice; i++)
+     for(i = 0; i < velicinaMatrice; i++) 
      {
-           for(j = 0; j < velicinaMatrice; j++)
-           {
-                   matrica[i][j] = 0;
-           }
-     }
-     
-      for(i = 0; i < velicinaMatrice; i++)
-     {
-           for(j = 0; j < velicinaMatrice; j++)
-           {
-                   matrica[i][j] = 8;
-           }
-     }
+             red = omoguciMatricu + i;
+             for(j = 0; j < 2; j++)
+             {
+                     kolonaCrvena = 0xff;
+                     kolonaZelena = 0xff;
 
-}
+                     kolonaCrvena = LCDDisplej[j][CRVENA][i];
+                     kolonaZelena = LCDDisplej[j][ZELENA][i];
+                     Delay_ms(1);
 
-void prikaziRedMatrice(unsigned char i, unsigned char matrica[velicinaMatrice][velicinaMatrice], unsigned char offset, unsigned char zajednicki)
-{
-     unsigned char j, kolonaC, kolonaZ;
-
-     kolonaC = 0xff;
-     kolonaZ = 0xff;
-     for(j = 0; j < velicinaMatrice; j++)
-     {
-          if(matrica[i][j] == 1 + offset || matrica[i][j] == 1 + offset + zajednicki) {
-                  kolonaC &= vrijednostReda[j];
-          }
-          else if(matrica[i][j] == 2 + offset || matrica[i][j] == 2 + offset + zajednicki) {
-                  kolonaZ &= vrijednostReda[j];
-          }
-          else if(matrica[i][j] == 3 + offset || matrica[i][j] == 3 + offset + zajednicki) {
-                  kolonaC &= vrijednostReda[j];
-                  kolonaZ &= vrijednostReda[j];
-          }
-     }
-
-     kolonaCrvena = kolonaC;
-     kolonaZelena = kolonaZ;
-     Delay_us(1500);
-
-     kolonaCrvena = 0xff;
-     kolonaZelena = 0xff;
-}
-
-void prikazMatrice()
-{
-     unsigned char i, j, kolonaC, kolonaZ;
-     red = 0;
-
-     for(i = 0; i < velicinaMatrice; i++)
-     {
-           red = omoguciMatricu + i;
-           prikaziRedMatrice(i, matrica, 0, 6);
-
-           red = red << 4;
-           Delay_us(1500);
-           prikaziRedMatrice(i, matrica, 3, 3);
+                     red = red << 4;
+             }
      }
 }
 
 void main()
 {
-        initMatrice();
+        initDispleja();
 
         while(1)
         {
-                prikazMatrice();
-
+                prikazNaDisplej();
         }
 }
