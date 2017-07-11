@@ -62,17 +62,20 @@ void prikazNaDisplej()
      unsigned char i, j;
      for(i = 0; i < velicinaMatrice; i++) 
      {
+             kolonaCrvena = 0xff;
+             kolonaZelena = 0xff;
              red = omoguciMatricu + i;
+             
              for(j = 0; j < 2; j++)
              {
-                     kolonaCrvena = 0xff;
-                     kolonaZelena = 0xff;
-
                      kolonaCrvena = LCDDisplej[j][CRVENA][i];
                      kolonaZelena = LCDDisplej[j][ZELENA][i];
-                     Delay_ms(1);
+                     Delay_us(500);
 
+                     kolonaCrvena = 0xff;
+                     kolonaZelena = 0xff;
                      red = red << 4;
+                     Delay_us(500);
              }
      }
 }
@@ -127,7 +130,7 @@ void reagovanjeNaTasterePriSetovanju(unsigned char indexTastera)
 
 void reagovanjeNaTasterePriGadjanju(unsigned char indexTastera)
 {
-      char hit[6];
+//      char hit[6];
       if(indexTastera == 2 && y > 0)
       {
              y--;
@@ -146,8 +149,15 @@ void reagovanjeNaTasterePriGadjanju(unsigned char indexTastera)
       }
       else if(indexTastera == 6)
       {
-              sprintf(hit, "hit%c%c", x + 0x30, y + 0x30);
-              UART_PutString(hit);
+//              sprintf(hit, "hit%c%c", x + 0x30, y + 0x30);
+//              UART_PutString(hit);
+              
+              UART_PutChar('h');
+              UART_PutChar('i');
+              UART_PutChar('t');
+              UART_PutChar(x + 0x30);
+              UART_PutChar(y + 0x30);
+
               fazaIgre = CEKANJE_ODGOVORA;
       }
 }
@@ -246,15 +256,15 @@ void main()
                         {
                                 if(porukaUarta[0] == 'D' && porukaUarta[1] == 'A')
                                 {
-                                      LCDDisplej[DESNI][CRVENA][yy] &= ~(1 << xx);
+                                      LCDDisplej[DESNI][CRVENA][y] &= ~(1 << x);
                                 }
                                 else
                                 {
-                                      LCDDisplej[DESNI][CRVENA][yy] &= ~(1 << xx);
-                                      LCDDisplej[DESNI][ZELENA][yy] &= ~(1 << xx);
+                                      LCDDisplej[DESNI][CRVENA][y] &= ~(1 << x);
+                                      LCDDisplej[DESNI][ZELENA][y] &= ~(1 << x);
                                 }
                                 brojSlovaPoruke = 0;
-                                fazaIgre == PRIHVATANJE_POGOTKA;
+                                fazaIgre = PRIHVATANJE_POGOTKA;
                         }
                 }
                 else if (fazaIgre == PRIHVATANJE_POGOTKA)
@@ -268,14 +278,18 @@ void main()
                                 {
                                       LCDDisplej[LIJEVI][CRVENA][yy] &= ~(1 << xx);
                                       LCDDisplej[LIJEVI][ZELENA][yy] &= ~(1 << xx);
+                                      UART_PutChar('D');
+                                      UART_PutChar('A');
                                 }
                                 else
                                 {
                                       LCDDisplej[LIJEVI][CRVENA][yy] &= ~(1 << xx);
                                       LCDDisplej[LIJEVI][ZELENA][yy] |= (1 << xx);
+                                      UART_PutChar('N');
+                                      UART_PutChar('E');
                                 }
                                 brojSlovaPoruke = 0;
-                                fazaIgre == GADJANJE;
+                                fazaIgre = GADJANJE;
                         }
                 }
         }
@@ -283,7 +297,6 @@ void main()
 
 void UartISR() iv IVT_ADDR_ES
 {
-
         // put your UART interrupt service routine code here
         if(UART_IsRXComplete()) {
                 if (fazaIgre == CEKANJE_ODGOVORA || fazaIgre == PRIHVATANJE_POGOTKA)
