@@ -130,7 +130,7 @@ void reagovanjeNaTasterePriSetovanju(unsigned char indexTastera)
 
 void reagovanjeNaTasterePriGadjanju(unsigned char indexTastera)
 {
-//      char hit[6];
+      char hit[6];
       if(indexTastera == 2 && y > 0)
       {
              y--;
@@ -149,14 +149,9 @@ void reagovanjeNaTasterePriGadjanju(unsigned char indexTastera)
       }
       else if(indexTastera == 6)
       {
-//              sprintf(hit, "hit%c%c", x + 0x30, y + 0x30);
-//              UART_PutString(hit);
-              
-              UART_PutChar('h');
-              UART_PutChar('i');
-              UART_PutChar('t');
-              UART_PutChar(x + 0x30);
-              UART_PutChar(y + 0x30);
+              sprintf(hit, "hit%c%c", x + 0x30, y + 0x30);
+              UART_PutString(hit);
+              TI_bit = 0;
 
               fazaIgre = CEKANJE_ODGOVORA;
       }
@@ -278,15 +273,15 @@ void main()
                                 {
                                       LCDDisplej[LIJEVI][CRVENA][yy] &= ~(1 << xx);
                                       LCDDisplej[LIJEVI][ZELENA][yy] &= ~(1 << xx);
-                                      UART_PutChar('D');
-                                      UART_PutChar('A');
+                                      UART_PutString("DA");
+                                      TI_bit = 0;
                                 }
                                 else
                                 {
                                       LCDDisplej[LIJEVI][CRVENA][yy] &= ~(1 << xx);
                                       LCDDisplej[LIJEVI][ZELENA][yy] |= (1 << xx);
-                                      UART_PutChar('N');
-                                      UART_PutChar('E');
+                                      UART_PutString("NE");
+                                      TI_bit = 0;
                                 }
                                 brojSlovaPoruke = 0;
                                 fazaIgre = GADJANJE;
