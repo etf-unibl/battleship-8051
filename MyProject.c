@@ -5,34 +5,39 @@ unsigned char kolonaZelena at P1;
 unsigned char kolonaCrvena at P2;
 unsigned char tasteri at P3;
 unsigned char dugmePritisnuto = 0xff;
-char porukaUarta[5];
-unsigned char brojSlovaPoruke = 0;
+char porukaZaSlanje[6];
+char porukaZaPrimanje[6];
+unsigned char brojSlovaPrimanjePoruke = 0;
+int brojac = 0;
+unsigned char potopljenoBrodova = 0;
+unsigned char unistioBrodova = 0;
 
 
-enum displej
+const enum displej
 {
      LIJEVI = 0,
      DESNI
 };
 
-enum dioda
+const enum dioda
 {
      CRVENA = 0,
      ZELENA
 };
 
-enum fazeIgranja
+const enum fazeIgranja
 {
      USPOSTAVLJANJE_KONEKCIJE = 0,
      SETOVANJE_BRODOVA,
      CEKANJE_SETOVANJA_PROTVNIKA,
      GADJANJE,
      PRIHVATANJE_POGOTKA,
-     KRAJ,
+     KRAJ_POBJEDA,
+     KRAJ_IZGUBIO,
      CEKANJE_ODGOVORA
 };
 
-unsigned char fazaIgre = SETOVANJE_BRODOVA;
+unsigned char fazaIgre;
 const int velicinaMatrice = 8;
 unsigned char LCDDisplej[2][2][velicinaMatrice];
 const unsigned char omoguciMatricu = 0x08;
@@ -41,10 +46,10 @@ unsigned char y = 3;
 const unsigned char duzineBrodova [8]= {4, 3, 2, 2, 1, 1, 1, 1};
 unsigned char brodZaSetovanje = 0;
 
+unsigned char i, j, k;
 
 void initDispleja()
 {
-     unsigned char i, j, k;
      for(i = 0; i < 2; i++)
      {
            for(j = 0; j < 2; j++)
@@ -59,7 +64,6 @@ void initDispleja()
 
 void prikazNaDisplej()
 {
-     unsigned char i, j;
      for(i = 0; i < velicinaMatrice; i++) 
      {
              kolonaCrvena = 0xff;
@@ -82,7 +86,7 @@ void prikazNaDisplej()
 
 unsigned char vratiBrod(unsigned char pozicija)
 {
-     unsigned char i, brod = 0xff;
+     unsigned char brod = 0xff;
 
      for(i = pozicija; i < pozicija + duzineBrodova[brodZaSetovanje]; i++)
      {
@@ -91,9 +95,28 @@ unsigned char vratiBrod(unsigned char pozicija)
      return brod;
 }
 
+unsigned char slobodnaPozicija()
+{
+       j = (y == 0) ? y : (y - 1);
+       brojac = (y == 7) ? y : (y + 1);
+       for(;j <= brojac; j++)
+       {
+             i = x != 0 ? (x - 1) : x;
+             k = x + duzineBrodova[brodZaSetovanje] - 1;
+             k = (k == 7) ? k : (k + 1);
+             for(; i <= k; i++)
+             {
+                    if(!(LCDDisplej[LIJEVI][ZELENA][j] & (1 << i)))
+                    {
+                         return 0;
+                    }
+             }
+       }
+       return 1;
+}
+
 void reagovanjeNaTasterePriSetovanju(unsigned char indexTastera)
 {
-      unsigned char brod;
       if(indexTastera == 2 && y > 0)
       {
              y--;
@@ -112,25 +135,25 @@ void reagovanjeNaTasterePriSetovanju(unsigned char indexTastera)
       }
       else if(indexTastera == 6)
       {
-             if (brodZaSetovanje < 8)
+             if(slobodnaPozicija())
              {
-                   brod = vratiBrod(x);
-                   LCDDisplej[0][ZELENA][y] &= brod;
+                   LCDDisplej[LIJEVI][ZELENA][y] &= vratiBrod(x);;
 
                    brodZaSetovanje++;
+
+                   x = 3;
+                   y = 3;
+                   
+                   if (brodZaSetovanje == 8)
+                   {
+                          fazaIgre = CEKANJE_SETOVANJA_PROTVNIKA;
+                   }
              }
-             if (brodZaSetovanje == 8)
-             {
-                    fazaIgre = GADJANJE;
-             }
-             x = 3;
-             y = 3;
       }
 }
 
 void reagovanjeNaTasterePriGadjanju(unsigned char indexTastera)
 {
-      char hit[6];
       if(indexTastera == 2 && y > 0)
       {
              y--;
@@ -149,17 +172,26 @@ void reagovanjeNaTasterePriGadjanju(unsigned char indexTastera)
       }
       else if(indexTastera == 6)
       {
-              sprintf(hit, "hit%c%c", x + 0x30, y + 0x30);
-              UART_PutString(hit);
-              TI_bit = 0;
+               if((LCDDisplej[DESNI][CRVENA][y] & (1 << x)))
+               {
+                     porukaZaSlanje[0] = 'h';
+                     porukaZaSlanje[1] = 'i';
+                     porukaZaSlanje[2] = 't';
+                     porukaZaSlanje[3] = x + 0x30;
+                     porukaZaSlanje[4] = y + 0x30;
+                     porukaZaSlanje[5] = 0;
 
-              fazaIgre = CEKANJE_ODGOVORA;
+                     TI_bit = 1;
+
+                     fazaIgre = CEKANJE_ODGOVORA;
+                     brojSlovaPrimanjePoruke = 0;
+               }
       }
 }
 
 void reagovanjeNaTastere()
 {
-     unsigned char i, siftovanoI;
+     unsigned char siftovanoI;
      for(i = 2; i < velicinaMatrice; i++)
      {
           siftovanoI = 1 << i;
@@ -188,30 +220,69 @@ void reagovanjeNaTastere()
 
 void iscrtajBrod() 
 {
-     unsigned char i, brod;
-     
-     brod = vratiBrod(x);
+
      red = omoguciMatricu + y;
      kolonaCrvena = 0xff;
-     kolonaZelena = brod;
+     kolonaZelena = vratiBrod(x);
      Delay_ms(1);
+
+     kolonaCrvena = 0xff;
+     kolonaZelena = 0xff;
      
-     brod = vratiBrod(3);
      red = (omoguciMatricu + 3) << 4;
-     kolonaZelena = brod;
+     kolonaZelena = vratiBrod(4 - (duzineBrodova[brodZaSetovanje] / 2));
      Delay_ms(1);
 }
 
 void iscrtajKursor()
 {
-       unsigned char pozicija = 0xff;
-       pozicija &= ~(1 << x);
+       i = 0xff;
+       i &= ~(1 << x);
 
        red = 0x80 + (y << 4);
        
        kolonaCrvena = 0xff;
-       kolonaZelena = pozicija;
+       kolonaZelena = i;
        Delay_ms(1);
+}
+
+void prikaziInformaciju(unsigned char boja)
+{
+      for(i = 3; i < 5; i++)
+      {
+             red = 0x80 + (i << 4);
+
+             if(boja == CRVENA)
+             {
+                   kolonaCrvena = 0;
+                   kolonaZelena = 0xff;
+             }
+             else
+             {
+                   kolonaCrvena = 0xff;
+                   kolonaZelena = 0;
+             }
+
+             Delay_ms(1);
+       }
+}
+
+void posaljiPoruku(char poruka[5])
+{
+       if(brojac > 2000)
+       {
+             i = 0;
+             while(poruka[i] != '\0') 
+             {
+                   porukaZaSlanje[i] = poruka[i];
+                   i++;
+             }
+             porukaZaSlanje[i] = 0;
+              
+             TI_bit = 1;
+             brojac = 0;
+       }
+       brojac++;
 }
 
 void main()
@@ -225,9 +296,14 @@ void main()
         // Enable interrupts
         ES_bit = 1;
         EA_bit = 1;
+        
+        fazaIgre = USPOSTAVLJANJE_KONEKCIJE;
+
+        brojac = 0;
 
         while(1)
         {
+
                 if (fazaIgre == SETOVANJE_BRODOVA)
                 {
                         prikazNaDisplej();
@@ -238,6 +314,51 @@ void main()
                               iscrtajBrod();
                         }
                 }
+                else if (fazaIgre == CEKANJE_SETOVANJA_PROTVNIKA)
+                {
+                        prikaziInformaciju(ZELENA);
+                        if(brojSlovaPrimanjePoruke >= 4)
+                        {
+                             if(porukaZaPrimanje[0] == 'p'
+                             && porukaZaPrimanje[1] == 'r'
+                             && porukaZaPrimanje[2] == 'v'
+                             && porukaZaPrimanje[3] == 'i'
+                             ) {
+                                   porukaZaSlanje[0] = 'd';
+                                   porukaZaSlanje[1] = 'r';
+                                   porukaZaSlanje[2] = 'u';
+                                   porukaZaSlanje[3] = 'g';
+                                   porukaZaSlanje[4] = 'i';
+                                   porukaZaSlanje[5] = 0;
+                                   
+                                   TI_bit = 1;
+                                   fazaIgre = PRIHVATANJE_POGOTKA;
+                             } else
+                             {
+                                   fazaIgre = GADJANJE;
+                             }
+                             brojSlovaPrimanjePoruke = 0;
+                        } else {
+                              posaljiPoruku("prvi");
+                        }
+                }
+                else if (fazaIgre == USPOSTAVLJANJE_KONEKCIJE)
+                {
+                        prikaziInformaciju(ZELENA);
+                        if(brojSlovaPrimanjePoruke >= 5) {
+                             if(porukaZaPrimanje[0] == 's'
+                             && porukaZaPrimanje[1] == 't'
+                             && porukaZaPrimanje[2] == 'a'
+                             && porukaZaPrimanje[3] == 'r'
+                             && porukaZaPrimanje[4] == 't'
+                             ) {
+                                   fazaIgre = SETOVANJE_BRODOVA;
+                             }
+                             brojSlovaPrimanjePoruke = 0;
+                        } else {
+                               posaljiPoruku("start");
+                        }
+                }
                 else if (fazaIgre == GADJANJE)
                 {
                         prikazNaDisplej();
@@ -246,46 +367,75 @@ void main()
                 }
                 else if (fazaIgre == CEKANJE_ODGOVORA)
                 {
-                       prikazNaDisplej();
-                       if (brojSlovaPoruke >= 2)
+                        prikazNaDisplej();
+                        if (brojSlovaPrimanjePoruke >= 2)
                         {
-                                if(porukaUarta[0] == 'D' && porukaUarta[1] == 'A')
+                                if(porukaZaPrimanje[0] == 'D' && porukaZaPrimanje[1] == 'A')
                                 {
                                       LCDDisplej[DESNI][CRVENA][y] &= ~(1 << x);
+                                      unistioBrodova++;
                                 }
                                 else
                                 {
                                       LCDDisplej[DESNI][CRVENA][y] &= ~(1 << x);
                                       LCDDisplej[DESNI][ZELENA][y] &= ~(1 << x);
                                 }
-                                brojSlovaPoruke = 0;
+                                brojSlovaPrimanjePoruke = 0;
                                 fazaIgre = PRIHVATANJE_POGOTKA;
+                                if(potopljenoBrodova == 15)
+                                {
+                                        fazaIgre = KRAJ_POBJEDA;
+                                }
                         }
                 }
                 else if (fazaIgre == PRIHVATANJE_POGOTKA)
                 {
                         prikazNaDisplej();
-                        if (brojSlovaPoruke >= 5)
+                        if (brojSlovaPrimanjePoruke >= 5)
                         {
-                                xx = porukaUarta[3] - 0x30;
-                                yy = porukaUarta[4] - 0x30;
-                                if(LCDDisplej[LIJEVI][ZELENA][yy] & (1 << xx))
+                                xx = porukaZaPrimanje[3] - 0x30;
+                                yy = porukaZaPrimanje[4] - 0x30;
+                                if(!(LCDDisplej[LIJEVI][ZELENA][yy] & (1 << xx)))
                                 {
                                       LCDDisplej[LIJEVI][CRVENA][yy] &= ~(1 << xx);
-                                      LCDDisplej[LIJEVI][ZELENA][yy] &= ~(1 << xx);
-                                      UART_PutString("DA");
-                                      TI_bit = 0;
+                                      LCDDisplej[LIJEVI][ZELENA][yy] |= (1 << xx);
+                                      
+                                      porukaZaSlanje[0] = 'D';
+                                      porukaZaSlanje[1] = 'A';
+                                      porukaZaSlanje[2] = 0;
+                                      
+                                      TI_bit = 1;
+                                      potopljenoBrodova++;
                                 }
                                 else
                                 {
                                       LCDDisplej[LIJEVI][CRVENA][yy] &= ~(1 << xx);
-                                      LCDDisplej[LIJEVI][ZELENA][yy] |= (1 << xx);
-                                      UART_PutString("NE");
-                                      TI_bit = 0;
+                                      LCDDisplej[LIJEVI][ZELENA][yy] &= ~(1 << xx);
+                                       
+                                      porukaZaSlanje[0] = 'N';
+                                      porukaZaSlanje[1] = 'E';
+                                      porukaZaSlanje[2] = 0;
+                                       
+                                      TI_bit = 1;
                                 }
-                                brojSlovaPoruke = 0;
+                                brojSlovaPrimanjePoruke = 0;
                                 fazaIgre = GADJANJE;
+                                x = 0;
+                                y = 0;
+
+                                if(potopljenoBrodova == 15)
+                                {
+                                      fazaIgre = KRAJ_IZGUBIO;
+                                }
                         }
+                }
+                else if (fazaIgre == KRAJ_POBJEDA)
+                {
+                        prikaziInformaciju(ZELENA);
+                }
+                else if (fazaIgre == KRAJ_IZGUBIO)
+                {
+                        prikaziInformaciju(CRVENA);
                 }
         }
 }
@@ -294,12 +444,19 @@ void UartISR() iv IVT_ADDR_ES
 {
         // put your UART interrupt service routine code here
         if(UART_IsRXComplete()) {
-                if (fazaIgre == CEKANJE_ODGOVORA || fazaIgre == PRIHVATANJE_POGOTKA)
+                if ((fazaIgre == CEKANJE_ODGOVORA || fazaIgre == PRIHVATANJE_POGOTKA || fazaIgre == USPOSTAVLJANJE_KONEKCIJE  || fazaIgre == CEKANJE_SETOVANJA_PROTVNIKA
+                || fazaIgre == GADJANJE || fazaIgre == SETOVANJE_BRODOVA)
+                   && brojSlovaPrimanjePoruke < 5)
                 {
-                     porukaUarta[brojSlovaPoruke] = UART_GetChar();
-                     brojSlovaPoruke++;
+                     porukaZaPrimanje[brojSlovaPrimanjePoruke] = UART_GetChar();
+                     brojSlovaPrimanjePoruke++;
+
                 }
 
                 RI_bit = 0;
+        }
+        if(UART_IsTXEmpty()) {
+              UART_PutString(porukaZaSlanje);
+              TI_bit = 0;
         }
 }
