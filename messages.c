@@ -3,8 +3,8 @@
 #include "gameStage.h"
 #include "uart.h"
 
-char outgoingMessage[6];
-char incomingMessage[6];
+char outgoingMessage[7];
+char incomingMessage[7];
 unsigned char incomingMessageCharCount;
 
 extern unsigned char gameStage;

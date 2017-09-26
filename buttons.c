@@ -11,8 +11,8 @@ unsigned char y;
 extern unsigned char incomingMessageCharCount;
 extern const unsigned char shipSize[8];
 extern unsigned char shipIndex;
-extern char outgoingMessage[6];
-extern char incomingMessage[6];
+extern char outgoingMessage[7];
+extern char incomingMessage[7];
 extern unsigned char gameStage;
 
 static unsigned char i, j, k;

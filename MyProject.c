@@ -8,8 +8,8 @@ extern unsigned char gameStage;
 extern unsigned char incomingMessageCharCount = 0;
 extern const unsigned char shipSize[8] = { 4, 3, 2, 2, 1, 1, 1, 1 };
 extern unsigned char shipIndex = 0;
-extern char outgoingMessage[6];
-extern char incomingMessage[6];
+extern char outgoingMessage[7];
+extern char incomingMessage[7];
 extern unsigned char x = 3;
 extern unsigned char y = 3;
 
@@ -45,10 +45,13 @@ void main()
             showInfo(DIODE_GREEN);
             if (incomingMessageCharCount >= 4)
             {
-                if (incomingMessage[0] == 'p' && incomingMessage[1] == 'r' && incomingMessage[2] == 'v'
-                    && incomingMessage[3] == 'i')
+                if (incomingMessage[0] == 'f' 
+                    && incomingMessage[1] == 'i'
+                    && incomingMessage[2] == 'r'
+                    && incomingMessage[3] == 's'
+                    && incomingMessage[4] == 't')
                 {
-                    sendMessage("drugi");
+                    sendMessage("second");
                     gameStage = ACCEPTANCE_OF_SHOT;
                 }
                 else
@@ -59,7 +62,7 @@ void main()
             }
             else
             {
-                sendDelayedMessage("prvi");
+                sendDelayedMessage("first");
             }
         }
         else if (gameStage == ESTABLISHING_CONNECTION)
@@ -89,9 +92,12 @@ void main()
         else if (gameStage == WAITING_FOR_RESPONCE)
         {
             showDisplay();
-            if (incomingMessageCharCount >= 2)
+            if (incomingMessageCharCount >= 3)
             {
-                if (incomingMessage[0] == 'D' && incomingMessage[1] == 'A')
+                if (incomingMessage[0] == 'Y' 
+                   && incomingMessage[1] == 'E'
+                   && incomingMessage[2] == 'S')
+                   
                 {
                     setDiodes(DISPLAY_RIGHT, DIODE_RED, y, x);
                     destroyedShips++;
@@ -121,7 +127,7 @@ void main()
                     setDiodes(DISPLAY_LEFT, DIODE_RED, yy, xx);
                     resetDiode(DISPLAY_LEFT, DIODE_GREEN, yy, xx);
 
-                    sendMessage("DA");
+                    sendMessage("YES");
                     sunkShips++;
                 }
                 else
@@ -129,7 +135,7 @@ void main()
                     setDiodes(DISPLAY_LEFT, DIODE_RED, yy, xx);
                     setDiodes(DISPLAY_LEFT, DIODE_GREEN, yy, xx);
 
-                    sendMessage("NE");
+                    sendMessage("NO");
                 }
                 incomingMessageCharCount = 0;
                 gameStage = AIMING;
