@@ -1,154 +1,154 @@
+#include "buttons.h"
+#include "display.h"
+#include "gameStage.h"
+#include "messages.h"
 #include "uart.h"
-#include "displej.h"
-#include "tasteri.h"
-#include "poruke.h"
-#include "fazaIgre.h"
 
-extern unsigned char fazaIgre;
-extern unsigned char brojSlovaPrimanjePoruke = 0;
-extern const unsigned char duzineBrodova[8] = { 4, 3, 2, 2, 1, 1, 1, 1 };
-extern unsigned char brodZaSetovanje = 0;
-extern char porukaZaSlanje[6];
-extern char porukaZaPrimanje[6];
+extern unsigned char gameStage;
+extern unsigned char incomingMessageCharCount = 0;
+extern const unsigned char shipSize[8] = { 4, 3, 2, 2, 1, 1, 1, 1 };
+extern unsigned char shipIndex = 0;
+extern char outgoingMessage[6];
+extern char incomingMessage[6];
 extern unsigned char x = 3;
 extern unsigned char y = 3;
 
-static unsigned char potopljenoBrodova = 0;
-static unsigned char unistioBrodova = 0;
+static unsigned char sunkShips = 0;
+static unsigned char destroyedShips = 0;
 
 void main()
 {
     unsigned char xx, yy;
 
-    initDisplej();
+    initDisplay();
     UART_Config(1200);
-    initTasteri();
-    initPoruke();
+    initButtons();
+    initMessages();
 
-    initFazeIgre();
+    initGameStage();
 
     while (1)
     {
 
-        if (fazaIgre == SETOVANJE_BRODOVA)
+        if (gameStage == SETTING_SHIPS)
         {
-            prikazNaDisplej();
-            reagovanjeNaTastere();
+            showDisplay();
+            buttonResponce();
 
-            if (brodZaSetovanje < 8)
+            if (shipIndex < 8)
             {
-                iscrtajBrod();
+                drawShip();
             }
         }
-        else if (fazaIgre == CEKANJE_SETOVANJA_PROTVNIKA)
+        else if (gameStage == WAITING_OPPONENTS_SETTING)
         {
-            prikaziInformaciju(ZELENA);
-            if (brojSlovaPrimanjePoruke >= 4)
+            showInfo(DIODE_GREEN);
+            if (incomingMessageCharCount >= 4)
             {
-                if (porukaZaPrimanje[0] == 'p' && porukaZaPrimanje[1] == 'r' && porukaZaPrimanje[2] == 'v'
-                    && porukaZaPrimanje[3] == 'i')
+                if (incomingMessage[0] == 'p' && incomingMessage[1] == 'r' && incomingMessage[2] == 'v'
+                    && incomingMessage[3] == 'i')
                 {
-                    posaljiPoruku("drugi");
-                    fazaIgre = PRIHVATANJE_POGOTKA;
+                    sendMessage("drugi");
+                    gameStage = ACCEPTANCE_OF_SHOT;
                 }
                 else
                 {
-                    fazaIgre = GADJANJE;
+                    gameStage = AIMING;
                 }
-                brojSlovaPrimanjePoruke = 0;
+                incomingMessageCharCount = 0;
             }
             else
             {
-                posaljiPorukuSaKasnjenjem("prvi");
+                sendDelayedMessage("prvi");
             }
         }
-        else if (fazaIgre == USPOSTAVLJANJE_KONEKCIJE)
+        else if (gameStage == ESTABLISHING_CONNECTION)
         {
-            prikaziInformaciju(ZELENA);
-            if (brojSlovaPrimanjePoruke >= 5)
+            showInfo(DIODE_GREEN);
+            if (incomingMessageCharCount >= 5)
             {
-                if (porukaZaPrimanje[0] == 's' && porukaZaPrimanje[1] == 't' && porukaZaPrimanje[2] == 'a'
-                    && porukaZaPrimanje[3] == 'r' && porukaZaPrimanje[4] == 't')
+                if (incomingMessage[0] == 's' && incomingMessage[1] == 't' && incomingMessage[2] == 'a'
+                    && incomingMessage[3] == 'r' && incomingMessage[4] == 't')
                 {
-                    fazaIgre = SETOVANJE_BRODOVA;
-                    posaljiPoruku("start");
+                    gameStage = SETTING_SHIPS;
+                    sendMessage("start");
                 }
-                brojSlovaPrimanjePoruke = 0;
+                incomingMessageCharCount = 0;
             }
             else
             {
-                posaljiPorukuSaKasnjenjem("start");
+                sendDelayedMessage("start");
             }
         }
-        else if (fazaIgre == GADJANJE)
+        else if (gameStage == AIMING)
         {
-            prikazNaDisplej();
-            reagovanjeNaTastere();
-            iscrtajKursor();
+            showDisplay();
+            buttonResponce();
+            drawCursor();
         }
-        else if (fazaIgre == CEKANJE_ODGOVORA)
+        else if (gameStage == WAITING_FOR_RESPONCE)
         {
-            prikazNaDisplej();
-            if (brojSlovaPrimanjePoruke >= 2)
+            showDisplay();
+            if (incomingMessageCharCount >= 2)
             {
-                if (porukaZaPrimanje[0] == 'D' && porukaZaPrimanje[1] == 'A')
+                if (incomingMessage[0] == 'D' && incomingMessage[1] == 'A')
                 {
-                    setujDiodu(DESNI, CRVENA, y, x);
-                    unistioBrodova++;
+                    setDiodes(DISPLAY_RIGHT, DIODE_RED, y, x);
+                    destroyedShips++;
                 }
                 else
                 {
-                    setujDiodu(DESNI, CRVENA, y, x);
-                    setujDiodu(DESNI, ZELENA, y, x);
+                    setDiodes(DISPLAY_RIGHT, DIODE_RED, y, x);
+                    setDiodes(DISPLAY_RIGHT, DIODE_GREEN, y, x);
                 }
-                brojSlovaPrimanjePoruke = 0;
-                fazaIgre = PRIHVATANJE_POGOTKA;
-                if (unistioBrodova == 15)
+                incomingMessageCharCount = 0;
+                gameStage = ACCEPTANCE_OF_SHOT;
+                if (destroyedShips == 15)
                 {
-                    fazaIgre = KRAJ_POBJEDA;
+                    gameStage = END_WIN;
                 }
             }
         }
-        else if (fazaIgre == PRIHVATANJE_POGOTKA)
+        else if (gameStage == ACCEPTANCE_OF_SHOT)
         {
-            prikazNaDisplej();
-            if (brojSlovaPrimanjePoruke >= 5)
+            showDisplay();
+            if (incomingMessageCharCount >= 5)
             {
-                xx = porukaZaPrimanje[3] - 0x30;
-                yy = porukaZaPrimanje[4] - 0x30;
-                if (upaljenaDioda(LIJEVI, ZELENA, yy, xx))
+                xx = incomingMessage[3] - 0x30;
+                yy = incomingMessage[4] - 0x30;
+                if (diodeOn(DISPLAY_LEFT, DIODE_GREEN, yy, xx))
                 {
-                    setujDiodu(LIJEVI, CRVENA, yy, xx);
-                    resetujDiodu(LIJEVI, ZELENA, yy, xx);
+                    setDiodes(DISPLAY_LEFT, DIODE_RED, yy, xx);
+                    resetDiode(DISPLAY_LEFT, DIODE_GREEN, yy, xx);
 
-                    posaljiPoruku("DA");
-                    potopljenoBrodova++;
+                    sendMessage("DA");
+                    sunkShips++;
                 }
                 else
                 {
-                    setujDiodu(LIJEVI, CRVENA, yy, xx);
-                    setujDiodu(LIJEVI, ZELENA, yy, xx);
+                    setDiodes(DISPLAY_LEFT, DIODE_RED, yy, xx);
+                    setDiodes(DISPLAY_LEFT, DIODE_GREEN, yy, xx);
 
-                    posaljiPoruku("NE");
+                    sendMessage("NE");
                 }
-                brojSlovaPrimanjePoruke = 0;
-                fazaIgre = GADJANJE;
+                incomingMessageCharCount = 0;
+                gameStage = AIMING;
                 x = 0;
                 y = 0;
 
-                if (potopljenoBrodova == 15)
+                if (sunkShips == 15)
                 {
-                    fazaIgre = KRAJ_IZGUBIO;
+                    gameStage = END_LOSE;
                 }
             }
         }
-        else if (fazaIgre == KRAJ_POBJEDA)
+        else if (gameStage == END_WIN)
         {
-            prikaziInformaciju(ZELENA);
+            showInfo(DIODE_GREEN);
         }
-        else if (fazaIgre == KRAJ_IZGUBIO)
+        else if (gameStage == END_LOSE)
         {
-            prikaziInformaciju(CRVENA);
+            showInfo(DIODE_RED);
         }
     }
 }
