@@ -1,5 +1,12 @@
-#include "buttons.h"
+/*!
+ * \file buttons.c
+ * \brief Functions that work with buttons
+ *  COPYRIGHT: College of electrical engineering, www.etfbl.net
+ *  This software was written in accordance to the guidelines at https://github.com/knezicm/battleship-8051/blob/master/LICENSE
+ *  VERSION:	1.0, PF 2-OCT-17
+ */
 
+#include "buttons.h"
 #include "display.h"
 #include "gameStage.h"
 #include "messages.h"
@@ -28,7 +35,7 @@ void initButtons()
     EA_bit = 1;
 }
 
-void buttonResponceSetting(unsigned char buttonIndex)
+void static buttonResponceSetting(unsigned char buttonIndex)
 {
     if (buttonIndex == BUTTON_UP && y > 0)
     {
@@ -66,7 +73,7 @@ void buttonResponceSetting(unsigned char buttonIndex)
     }
 }
 
-void buttonResponceShooting(unsigned char buttonIndex)
+void static buttonResponceShooting(unsigned char buttonIndex)
 {
     if (buttonIndex == BUTTON_UP && y > 0)
     {
@@ -103,6 +110,14 @@ void buttonResponceShooting(unsigned char buttonIndex)
     }
 }
 
+void static buttonResponceNewGame(unsigned char buttonIndex)
+{
+    if (buttonIndex == BUTTON_ENTER)
+    {
+        gameStage = RESET_GAME;
+    }
+}
+
 void buttonResponce()
 {
     unsigned char shiftedI;
@@ -120,6 +135,10 @@ void buttonResponce()
                 else if (gameStage == AIMING)
                 {
                     buttonResponceShooting(i);
+                }
+                else if (gameStage == END_WIN || gameStage == END_LOSE)
+                {
+                    buttonResponceNewGame(i);
                 }
 
                 buttonPressed |= shiftedI;

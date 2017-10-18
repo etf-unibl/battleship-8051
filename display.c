@@ -1,13 +1,18 @@
-#include "display.h"
+/*!
+ * \file display.c
+ * \brief Functions that work with LEDS(two displays)
+ *  COPYRIGHT: College of electrical engineering, www.etfbl.net
+ *  This software was written in accordance to the guidelines at https://github.com/knezicm/battleship-8051/blob/master/LICENSE
+ *  VERSION:	1.0, PF 2-OCT-17
+ */
 
+#include "display.h"
 #include "buttons.h"
 #include "uart.h"
 
 unsigned char row at P0;
-//unsigned char columnRed at P1;
-//unsigned char columnGreen at P2;
-unsigned char columnRed;
-unsigned char columnGreen;
+unsigned char columnRed at P1;
+unsigned char columnGreen at P2;
 
 const unsigned char shipSize[8] = { 4, 3, 2, 2, 1, 1, 1, 1 };
 unsigned char shipIndex;
@@ -142,9 +147,9 @@ void setDiodes(enum display d, enum diode di, unsigned char y, unsigned char x)
     LCD[d][di][y] &= ~(1 << x);
 }
 
-void setDiodesRow(enum display d, enum diode di, unsigned char y, unsigned char redDioda)
+void setDiodesRow(enum display d, enum diode di, unsigned char y, unsigned char row)
 {
-    LCD[d][di][y] &= redDioda;
+    LCD[d][di][y] &= row;
 }
 
 void resetDiode(enum display d, enum diode di, unsigned char y, unsigned char x)

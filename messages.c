@@ -1,5 +1,12 @@
-#include "messages.h"
+/*!
+ * \file messages.h
+ * \brief Function that works with messages send/received through uart
+ *  COPYRIGHT: College of electrical engineering, www.etfbl.net
+ *  This software was written in accordance to the guidelines at https://github.com/knezicm/battleship-8051/blob/master/LICENSE
+ *  VERSION:	1.0, PF 2-OCT-17
+ */
 
+#include "messages.h"
 #include "gameStage.h"
 #include "uart.h"
 
@@ -18,7 +25,7 @@ void initMessages()
     counter = 0;
 }
 
-void sendMessage(char message[5])
+void sendMessage(char message[7])
 {
     i = 0;
     while (message[i] != '\0')
@@ -31,9 +38,9 @@ void sendMessage(char message[5])
     TI_bit = 1;
 }
 
-void sendDelayedMessage(char message[5])
+void sendDelayedMessage(char message[7])
 {
-    if (counter == 0)
+    if (counter <= 0)
     {
         sendMessage(message);
         counter = 2000;

@@ -1,3 +1,11 @@
+/*!
+ * \file MyProject.c
+ * \brief Main loop for program
+ *  COPYRIGHT: College of electrical engineering, www.etfbl.net
+ *  This software was written in accordance to the guidelines at https://github.com/knezicm/battleship-8051/blob/master/LICENSE
+ *  VERSION:        1.0, PF 2-OCT-17
+ */
+
 #include "buttons.h"
 #include "display.h"
 #include "gameStage.h"
@@ -92,7 +100,7 @@ void main()
         else if (gameStage == WAITING_FOR_RESPONCE)
         {
             showDisplay();
-            if (incomingMessageCharCount >= 3)
+            if (incomingMessageCharCount >= 2)
             {
                 if (incomingMessage[0] == 'Y' 
                    && incomingMessage[1] == 'E'
@@ -151,10 +159,21 @@ void main()
         else if (gameStage == END_WIN)
         {
             showInfo(DIODE_GREEN);
+            buttonResponce();
         }
         else if (gameStage == END_LOSE)
         {
             showInfo(DIODE_RED);
+            buttonResponce();
+        }
+        else if (gameStage == RESET_GAME)
+        {
+            initDisplay();
+            initButtons();
+            initMessages();
+            gameStage = SETTING_SHIPS;
+            sunkShips = 0;
+            destroyedShips = 0;
         }
     }
 }
